@@ -45,7 +45,7 @@ public class TestUsersController {
   [Fact]
   public async Task UsersController_AddUser_ShouldReturn400Status() {
     var userService = new Mock<IUserService>();
-    var exception = new BadRequestException(UserServiceErrors.InvalidName.Value);
+    var exception = new BadRequestException(UserServiceErrors.InvalidName);
     userService.Setup(static _ => _.AddUser(It.IsAny<CreateUserDto>())).ThrowsAsync(exception);
 
     var sut = new UsersController(userService.Object);
@@ -77,7 +77,7 @@ public class TestUsersController {
   [Fact]
   public async Task UserController_UpdateUser_ShouldReturn400Status() {
     var userService = new Mock<IUserService>();
-    var exception = new BadRequestException(UserServiceErrors.InvalidName.Value);
+    var exception = new BadRequestException(UserServiceErrors.InvalidName);
     userService.Setup(static _ => _.UpdateUser(It.IsAny<UpdateUserDto>(), It.IsAny<ClaimsPrincipal>())).ThrowsAsync(exception);
 
     var sut = new UsersController(userService.Object);
@@ -107,7 +107,7 @@ public class TestUsersController {
   [Fact]
   public async Task UserController_UpdateUser_ShouldReturn404Status() {
     var userService = new Mock<IUserService>();
-    var exception = new NotFoundException(UserServiceErrors.InvalidName.Value);
+    var exception = new NotFoundException(UserServiceErrors.NotFound);
     userService.Setup(static _ => _.UpdateUser(It.IsAny<UpdateUserDto>(), It.IsAny<ClaimsPrincipal>())).ThrowsAsync(exception);
 
     var sut = new UsersController(userService.Object);

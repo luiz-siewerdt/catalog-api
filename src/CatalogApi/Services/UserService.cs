@@ -28,7 +28,7 @@ public class UserService(IUserRepository repository, IProductRepository productR
 
   public async Task<UserResponseWithProducts> GetUser(long id) {
     var user = await _repository.GetById(id)
-      ?? throw new NotFoundException(UserServiceErrors.NotFounded.Value);
+      ?? throw new NotFoundException(UserServiceErrors.NotFound);
     return UserResponseWithProducts.FromDomain(user);
   }
 
@@ -63,7 +63,7 @@ public class UserService(IUserRepository repository, IProductRepository productR
     }
 
     var userExists = await _repository.GetById(userId)
-      ?? throw new NotFoundException(UserServiceErrors.NotFounded.Value);
+      ?? throw new NotFoundException(UserServiceErrors.NotFound);
 
 
     userExists.Email = user.Email;
@@ -74,7 +74,7 @@ public class UserService(IUserRepository repository, IProductRepository productR
 
   public async Task DeleteUser(long id) {
     var user = await _repository.GetById(id)
-      ?? throw new NotFoundException(UserServiceErrors.NotFounded.Value);
+      ?? throw new NotFoundException(UserServiceErrors.NotFound);
     await _repository.Remove(user);
   }
 

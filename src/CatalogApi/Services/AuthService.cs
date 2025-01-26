@@ -16,12 +16,12 @@ public class AuthService(IUserRepository userRepository, IAuthenticationHelper a
 
   public async Task<AuthSignInResponseDto> SignIn(AuthSignInRequestDto auth) {
     var user = await _userRepository.GetByEmail(auth.Email)
-      ?? throw new NotFoundException(AuthServiceErrors.IncorrectLogin.Value);
+      ?? throw new NotFoundException(AuthServiceErrors.IncorrectLogin);
 
     var math = user.Password == auth.Password;
 
     if (!math) {
-      throw new NotFoundException(AuthServiceErrors.IncorrectLogin.Value);
+      throw new NotFoundException(AuthServiceErrors.IncorrectLogin);
     }
 
     var token = _authenticationHelper.AuthenticationToken(user);
@@ -31,7 +31,7 @@ public class AuthService(IUserRepository userRepository, IAuthenticationHelper a
   public async Task<UserResponse> Authentication(ClaimsPrincipal userClaim) {
     var userId = AuthenticationHelper.GetUserClaimId(userClaim);
     var user = await _userRepository.GetById(userId)
-      ?? throw new BadRequestException(AuthServiceErrors.InvalidToken.Value);
+      ?? throw new BadRequestException(AuthServiceErrors.InvalidToken);
     return UserResponse.FromDomain(user);
   }
 }
