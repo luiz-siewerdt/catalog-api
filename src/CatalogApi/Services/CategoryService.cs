@@ -23,7 +23,7 @@ public class CategoryService(ICategoryRepository repository) : ICategoryService 
 
   public async Task<CategoryResponse> GetCategory(long id) {
     var category = await _repository.GetById(id)
-      ?? throw new NotFoundException(CategoryServiceErrors.NotFounded.Value);
+      ?? throw new NotFoundException(CategoryServiceErrors.NotFound);
 
     return CategoryResponse.FromDomain(category);
   }
@@ -51,7 +51,7 @@ public class CategoryService(ICategoryRepository repository) : ICategoryService 
     }
 
     var categoryDomain = await _repository.GetById(id)
-      ?? throw new NotFoundException(CategoryServiceErrors.NotFounded.Value);
+      ?? throw new NotFoundException(CategoryServiceErrors.NotFound);
 
     categoryDomain.Name = category.Name;
 
@@ -61,7 +61,7 @@ public class CategoryService(ICategoryRepository repository) : ICategoryService 
 
   public async Task DeleteCategory(long id) {
     var categoryExists = await _repository.GetById(id)
-      ?? throw new NotFoundException(CategoryServiceErrors.NotFounded.Value);
+      ?? throw new NotFoundException(CategoryServiceErrors.NotFound);
 
     await _repository.Remove(categoryExists);
   }
