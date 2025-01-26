@@ -117,6 +117,35 @@ public class TestCategoryService {
       Times.Once);
   }
 
+  [Fact]
+  public async Task CategoryService_UpdateCategory_ShouldUpdateSuccessfully() {
+    var updateCategory = new UpdateCategoryDto("name");
+    long categoryId = 5;
+
+    var categoryRepository = new Mock<ICategoryRepository>();
+    categoryRepository.Setup(static _ => _.GetById(It.IsAny<long>())).ReturnsAsync(
+      new CategoryDomain { Id = categoryId, Name = "na", Products = [] });
+    categoryRepository.Setup(static _ => _.Update(It.IsAny<CategoryDomain>()))
+      .Callback<CategoryDomain>(static cat => cat.Name = "name");
+
+    var sut = new CategoryService(categoryRepository.Object);
+
+    var result = await sut.UpdateCategory(categoryId, updateCategory);
+
+    Assert.NotNull(result);
+    Assert.Equal(categoryId, result.Id);
+    Assert.Equal(updateCategory.Name, result.Name);
+
+    categoryRepository.Verify(repo => repo.Update(It.Is<CategoryDomain>(
+      category => category.Name == updateCategory.Name
+        && category.Id == categoryId
+    )), Times.Once);
+    categoryRepository.Verify(repo => repo.NameAlreadyInUse(
+        It.Is<string>(s => s.Equals(updateCategory.Name)),
+        It.Is<long>(id => id == categoryId)),
+      Times.Once);
+  }
+
   //  TODO: Add UpdateCategory and DeleteCategory tests
 
 }
