@@ -1,5 +1,5 @@
 
 namespace CatalogApi.Errors;
 
-public class UnauthorizedException() : ServiceException(401, "") { }
+public class UnauthorizedException(string msg = "") : ServiceException(401, msg) { }
 

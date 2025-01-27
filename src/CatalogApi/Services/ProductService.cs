@@ -29,7 +29,7 @@ public class ProductService(IProductRepository repository, IUserRepository userR
 
   public async Task<ProductResponseWithUserAndCategories> GetProduct(long id) {
     var product = await _repository.GetById(id, static e => e.Categories, static e => e.User)
-      ?? throw new NotFoundException(ProductServiceErrors.NotFounded.Value);
+      ?? throw new NotFoundException(ProductServiceErrors.NotFound);
     Console.WriteLine(product.UserId);
     return ProductResponseWithUserAndCategories.FromDomain(product);
   }
@@ -38,7 +38,7 @@ public class ProductService(IProductRepository repository, IUserRepository userR
     var userId = AuthenticationHelper.GetUserClaimId(userClaim);
 
     var user = await _userRepository.GetById(userId)
-      ?? throw new NotFoundException(UserServiceErrors.NotFounded.Value);
+      ?? throw new NotFoundException(UserServiceErrors.NotFound);
 
     var productValidator = new CreateProductDtoValidator();
     var validation = await productValidator.ValidateAsync(product);
@@ -58,7 +58,7 @@ public class ProductService(IProductRepository repository, IUserRepository userR
   public async Task AddProductCategory(ICollection<string> categoryNames, long productId, ClaimsPrincipal userClaim) {
     var userId = AuthenticationHelper.GetUserClaimId(userClaim);
     var product = await _repository.GetByIdWithCategories(productId)
-      ?? throw new NotFoundException(ProductServiceErrors.NotFounded.Value);
+      ?? throw new NotFoundException(ProductServiceErrors.NotFound);
 
     if (product.UserId != userId) {
       throw new UnauthorizedException();
@@ -77,7 +77,7 @@ public class ProductService(IProductRepository repository, IUserRepository userR
 
   public async Task<ProductResponse> UpdateProduct(long productId, UpdateProductDto product, ClaimsPrincipal userClaim) {
     var productDomain = await _repository.GetById(productId)
-      ?? throw new NotFoundException(ProductServiceErrors.NotFounded.Value);
+      ?? throw new NotFoundException(ProductServiceErrors.NotFound);
     var userId = AuthenticationHelper.GetUserClaimId(userClaim);
 
     if (productDomain.UserId != userId) {
@@ -100,7 +100,7 @@ public class ProductService(IProductRepository repository, IUserRepository userR
 
   public async Task DeleteProduct(long id, ClaimsPrincipal userClaim) {
     var productExists = await _repository.GetById(id)
-      ?? throw new NotFoundException(ProductServiceErrors.NotFounded.Value);
+      ?? throw new NotFoundException(ProductServiceErrors.NotFound);
     var userId = AuthenticationHelper.GetUserClaimId(userClaim);
     if (productExists.UserId != userId) {
       throw new UnauthorizedException();

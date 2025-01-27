@@ -13,4 +13,9 @@ public class UsersMockData {
       new (2, "carlos", "emailcarlos")
   };
 
+  public static IEnumerable<ProductResponse> GetUserProducts() =>
+    new List<ProductResponse> {
+      new (1, "Produto 1", 10, 0, 4),
+      new (2, "Produto 2", 40, 2, 10)
+    };
 }

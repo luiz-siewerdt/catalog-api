@@ -10,113 +10,133 @@ using Moq;
 namespace CatalogApi.Tests.Controllers;
 
 public class TestUsersController {
-
   [Fact]
   public async Task UsersController_GetUsers_ShouldReturn200Status() {
+    var expectedResponseData = UsersMockData.GetUsers();
     var usersService = new Mock<IUserService>();
-    usersService.Setup(static _ => _.GetUsers()).ReturnsAsync(UsersMockData.GetUsers());
+    usersService.Setup(static _ => _.GetUsers()).ReturnsAsync(expectedResponseData);
     var sut = new UsersController(usersService.Object);
 
     var result = await sut.GetUsers();
     var okResult = Assert.IsType<OkObjectResult>(result.Result);
-    var resultValue = Assert.IsType<List<UserResponse>>(okResult.Value);
+    var actualResponseData = Assert.IsType<List<UserResponse>>(okResult.Value);
 
 
     Assert.Equal(200, okResult.StatusCode);
-    Assert.Equal(UsersMockData.GetUsers().Count(), resultValue.Count);
+    Assert.Equal(expectedResponseData.Count(), actualResponseData.Count);
+  }
+
+  [Fact]
+  public async Task UserController_GetUserProducts_ShouldReturn200Status() {
+    var expectedResponseData = UsersMockData.GetUserProducts();
+    var userService = new Mock<IUserService>();
+    userService.Setup(static _ => _.GetUserProducts(It.IsAny<ClaimsPrincipal>())).ReturnsAsync(expectedResponseData);
+
+    var sut = new UsersController(userService.Object);
+    var result = await sut.GetUserProducts();
+    var okResult = Assert.IsType<OkObjectResult>(result.Result);
+    var actualResponseData = Assert.IsType<List<ProductResponse>>(okResult.Value);
+
+    Assert.Equal(200, okResult.StatusCode);
+    Assert.Equal(expectedResponseData.Count(), actualResponseData.Count);
   }
 
   [Fact]
   public async Task UsersController_AddUser_ShouldReturn201Status() {
-    var responseData = UsersMockData.GetUserWithProducts();
+    var expectedResponseData = UsersMockData.GetUserWithProducts();
     var userService = new Mock<IUserService>();
-    userService.Setup(static _ => _.AddUser(It.IsAny<CreateUserDto>())).ReturnsAsync(responseData);
+    userService.Setup(static _ => _.AddUser(It.IsAny<CreateUserDto>())).ReturnsAsync(expectedResponseData);
 
     var sut = new UsersController(userService.Object);
     var result = await sut.AddUser(It.IsAny<CreateUserDto>());
 
     var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
-    var resultValue = Assert.IsType<UserResponseWithProducts>(createdResult.Value);
+    var actualResponseData = Assert.IsType<UserResponseWithProducts>(createdResult.Value);
 
     Assert.Equal(201, createdResult.StatusCode);
-    Assert.Equal(responseData.Name, resultValue.Name);
+    Assert.Equal(expectedResponseData.Name, actualResponseData.Name);
   }
+
 
   [Fact]
   public async Task UsersController_AddUser_ShouldReturn400Status() {
     var userService = new Mock<IUserService>();
-    var exception = new BadRequestException(UserServiceErrors.InvalidName.Value);
-    userService.Setup(static _ => _.AddUser(It.IsAny<CreateUserDto>())).ThrowsAsync(exception);
+    var expectedException = new BadRequestException(UserServiceErrors.InvalidName);
+    userService.Setup(static _ => _.AddUser(It.IsAny<CreateUserDto>())).ThrowsAsync(expectedException);
 
     var sut = new UsersController(userService.Object);
     var act = async () => await sut.AddUser(It.IsAny<CreateUserDto>());
 
-    var ex = await Assert.ThrowsAsync<BadRequestException>(act);
+    var actualException = await Assert.ThrowsAsync<BadRequestException>(act);
 
-    Assert.Equal(400, ex.StatusCode);
-    Assert.Equal(exception.StatusMessage, ex.StatusMessage);
+    Assert.Equal(400, actualException.StatusCode);
+    Assert.Equal(expectedException.StatusMessage, actualException.StatusMessage);
   }
 
   [Fact]
   public async Task UsersController_UpdateUser_ShouldReturn200Status() {
-    var responseData = UsersMockData.GetUser();
+    var expectedResponseData = UsersMockData.GetUser();
     var userService = new Mock<IUserService>();
     userService.Setup(static _ => _.UpdateUser(It.IsAny<UpdateUserDto>(), It.IsAny<ClaimsPrincipal>()))
-      .ReturnsAsync(responseData);
+      .ReturnsAsync(expectedResponseData);
     var sut = new UsersController(userService.Object);
 
     var result = await sut.UpdateUser(It.IsAny<UpdateUserDto>());
-
     var okObject = Assert.IsType<OkObjectResult>(result.Result);
-    var objectResponse = Assert.IsType<UserResponse>(okObject.Value);
+    var actualResponseData = Assert.IsType<UserResponse>(okObject.Value);
 
     Assert.Equal(200, okObject.StatusCode);
-    Assert.Equal(responseData.Name, objectResponse.Name);
+    Assert.Equal(expectedResponseData.Name, actualResponseData.Name);
   }
 
-  [Fact]
-  public async Task UserController_UpdateUser_ShouldReturn400Status() {
+  [Theory]
+  [InlineData(400, typeof(BadRequestException), UserServiceErrors.InvalidName)]
+  [InlineData(401, typeof(UnauthorizedException), "")]
+  [InlineData(404, typeof(NotFoundException), UserServiceErrors.InvalidName)]
+  public async Task UserController_UpdateUser_ShouldReturnBadStatus(
+      int expectedStatusCode,
+      Type exceptionType,
+      string errorMessage) {
     var userService = new Mock<IUserService>();
-    var exception = new BadRequestException(UserServiceErrors.InvalidName.Value);
-    userService.Setup(static _ => _.UpdateUser(It.IsAny<UpdateUserDto>(), It.IsAny<ClaimsPrincipal>())).ThrowsAsync(exception);
+    var expectedException = (Exception)Activator.CreateInstance(exceptionType, errorMessage)!;
+    userService.Setup(static _ => _.UpdateUser(It.IsAny<UpdateUserDto>(), It.IsAny<ClaimsPrincipal>())).ThrowsAsync(expectedException);
 
     var sut = new UsersController(userService.Object);
     var act = async () => await sut.UpdateUser(It.IsAny<UpdateUserDto>());
 
-    var ex = await Assert.ThrowsAsync<BadRequestException>(act);
+    var actualException = await Assert.ThrowsAsync(exceptionType, act);
 
-    Assert.Equal(400, ex.StatusCode);
-    Assert.Equal(exception.StatusMessage, ex.StatusMessage);
+    Assert.Equal(expectedStatusCode, ((dynamic)actualException).StatusCode);
+    if (errorMessage != null) {
+      Assert.Equal(errorMessage, ((dynamic)actualException).StatusMessage);
+    }
   }
 
   [Fact]
-  public async Task UserController_UpdateUser_ShouldReturn401Status() {
+  public async Task UserController_DeleteUser_ShouldReturn204Status() {
     var userService = new Mock<IUserService>();
-    var exception = new UnauthorizedException();
-    userService.Setup(static _ => _.UpdateUser(It.IsAny<UpdateUserDto>(), It.IsAny<ClaimsPrincipal>())).ThrowsAsync(exception);
 
     var sut = new UsersController(userService.Object);
-    var act = async () => await sut.UpdateUser(It.IsAny<UpdateUserDto>());
 
-    var ex = await Assert.ThrowsAsync<UnauthorizedException>(act);
+    var result = await sut.DeleteUser(It.IsAny<long>());
+    var noContentResponse = Assert.IsType<NoContentResult>(result);
 
-    Assert.Equal(401, ex.StatusCode);
-    Assert.Equal(exception.StatusMessage, ex.StatusMessage);
+    Assert.Equal(204, noContentResponse.StatusCode);
   }
 
   [Fact]
-  public async Task UserController_UpdateUser_ShouldReturn404Status() {
+  public async Task UserController_DeleteUser_ShouldReturn404Status() {
     var userService = new Mock<IUserService>();
-    var exception = new NotFoundException(UserServiceErrors.InvalidName.Value);
-    userService.Setup(static _ => _.UpdateUser(It.IsAny<UpdateUserDto>(), It.IsAny<ClaimsPrincipal>())).ThrowsAsync(exception);
+    var expectedException = new NotFoundException(UserServiceErrors.NotFound);
+    userService.Setup(static _ => _.DeleteUser(It.IsAny<long>())).ThrowsAsync(expectedException);
 
     var sut = new UsersController(userService.Object);
-    var act = async () => await sut.UpdateUser(It.IsAny<UpdateUserDto>());
+    var act = async () => await sut.DeleteUser(It.IsAny<long>());
 
-    var ex = await Assert.ThrowsAsync<NotFoundException>(act);
+    var actualException = await Assert.ThrowsAsync<NotFoundException>(act);
 
-    Assert.Equal(404, ex.StatusCode);
-    Assert.Equal(exception.StatusMessage, ex.StatusMessage);
+    Assert.Equal(404, actualException.StatusCode);
+    Assert.Equal(expectedException.StatusMessage, actualException.StatusMessage);
   }
 
 }
