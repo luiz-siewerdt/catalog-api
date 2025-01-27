@@ -1,5 +1,6 @@
 namespace CatalogApi.Errors;
 
+
 public abstract class ProductServiceErrors {
   public const string NotFound = "Produto não encontrado!";
   public const string InvalidName = "Nome inválido!";
