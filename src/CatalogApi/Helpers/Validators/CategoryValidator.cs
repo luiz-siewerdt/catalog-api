@@ -7,12 +7,13 @@ namespace CatalogApi.Helpers.Validators;
 
 public class CreateCategoryDtoValidator : AbstractValidator<CreateCategoryDto> {
   public CreateCategoryDtoValidator(ICategoryRepository repository) {
-    RuleFor(static e => e.Name).NotEmpty().WithMessage(CategoryServiceErrors.InvalidName).CustomAsync(async (name, ctx, CancellationToken) => {
-      var nameAlreadyInUse = await repository.NameAlreadyInUse(name);
-      if (nameAlreadyInUse) {
-        ctx.AddFailure(CategoryServiceErrors.NameAlreadyExists);
-      }
-    });
+    RuleFor(static e => e.Name).NotEmpty().WithMessage(CategoryServiceErrors.InvalidName)
+      .CustomAsync(async (name, ctx, CancellationToken) => {
+        var nameAlreadyInUse = await repository.NameAlreadyInUse(name);
+        if (nameAlreadyInUse) {
+          ctx.AddFailure(CategoryServiceErrors.NameAlreadyExists);
+        }
+      });
   }
 }
 
