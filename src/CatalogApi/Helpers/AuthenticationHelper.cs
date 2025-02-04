@@ -33,7 +33,7 @@ public class AuthenticationHelper(IConfiguration configuration) : IAuthenticatio
 
   public static long GetUserClaimId(ClaimsPrincipal principal) {
     var strId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
-      ?? throw new NotFoundException("osfdjskjfl");
+      ?? throw new UnauthorizedException();
 
     return long.Parse(strId, CultureInfo.InvariantCulture);
   }

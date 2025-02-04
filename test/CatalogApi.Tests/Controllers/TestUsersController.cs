@@ -42,6 +42,39 @@ public class TestUsersController {
   }
 
   [Fact]
+  public async Task UserController_GetUser_ShouldReturn200Status() {
+    var expectedResponseData = UsersMockData.GetUserWithProducts();
+    var userService = new Mock<IUserService>();
+
+    userService.Setup(static _ => _.GetUser(It.IsAny<long>())).ReturnsAsync(expectedResponseData);
+
+    var sut = new UsersController(userService.Object);
+    var result = await sut.GetUser(It.IsAny<long>());
+
+    var okResult = Assert.IsType<OkObjectResult>(result.Result);
+    var actualResponseData = Assert.IsType<UserResponseWithProducts>(okResult.Value);
+
+    Assert.Equal(200, okResult.StatusCode);
+    Assert.Equal(expectedResponseData.Email, actualResponseData.Email);
+  }
+
+
+  [Fact]
+  public async Task UserController_GetUser_ShouldReturn404Status() {
+    var expectedException = new NotFoundException(UserServiceErrors.NotFound);
+    var userService = new Mock<IUserService>();
+
+    userService.Setup(static _ => _.GetUser(It.IsAny<long>())).ThrowsAsync(expectedException);
+
+    var sut = new UsersController(userService.Object);
+
+    var actualException = await Assert.ThrowsAsync<NotFoundException>(async () => await sut.GetUser(It.IsAny<long>()));
+
+    Assert.Equal(404, actualException.StatusCode);
+    Assert.Equal(expectedException.StatusMessage, actualException.StatusMessage);
+  }
+
+  [Fact]
   public async Task UsersController_AddUser_ShouldReturn201Status() {
     var expectedResponseData = UsersMockData.GetUserWithProducts();
     var userService = new Mock<IUserService>();

@@ -27,7 +27,7 @@ public class UserService(IUserRepository repository, IProductRepository productR
   }
 
   public async Task<UserResponseWithProducts> GetUser(long id) {
-    var user = await _repository.GetById(id)
+    var user = await _repository.GetById(id, static e => e.Products)
       ?? throw new NotFoundException(UserServiceErrors.NotFound);
     return UserResponseWithProducts.FromDomain(user);
   }
@@ -44,7 +44,7 @@ public class UserService(IUserRepository repository, IProductRepository productR
     var validation = await userValidator.ValidateAsync(user);
 
     if (!validation.IsValid) {
-      throw new NotFoundException(validation.Errors.First().ErrorMessage);
+      throw new BadRequestException(validation.Errors.First().ErrorMessage);
     }
 
     var userDomain = user.ToDomain();

@@ -37,15 +37,15 @@ public class ProductService(IProductRepository repository, IUserRepository userR
   public async Task<ProductResponseWithUser> AddProduct(CreateProductDto product, ClaimsPrincipal userClaim) {
     var userId = AuthenticationHelper.GetUserClaimId(userClaim);
 
-    var user = await _userRepository.GetById(userId)
-      ?? throw new NotFoundException(UserServiceErrors.NotFound);
-
     var productValidator = new CreateProductDtoValidator();
     var validation = await productValidator.ValidateAsync(product);
 
     if (!validation.IsValid) {
       throw new BadRequestException(validation.Errors.First().ErrorMessage);
     }
+
+    var user = await _userRepository.GetById(userId)
+      ?? throw new NotFoundException(UserServiceErrors.NotFound);
 
     var productDomain = product.ToDomain();
     productDomain.User = user;
@@ -76,20 +76,22 @@ public class ProductService(IProductRepository repository, IUserRepository userR
   }
 
   public async Task<ProductResponse> UpdateProduct(long productId, UpdateProductDto product, ClaimsPrincipal userClaim) {
-    var productDomain = await _repository.GetById(productId)
-      ?? throw new NotFoundException(ProductServiceErrors.NotFound);
-    var userId = AuthenticationHelper.GetUserClaimId(userClaim);
-
-    if (productDomain.UserId != userId) {
-      throw new UnauthorizedException();
-    }
-
     var productValidator = new UpdateProductDtoValidator();
     var validation = await productValidator.ValidateAsync(product);
 
     if (!validation.IsValid) {
       throw new BadRequestException(validation.Errors.First().ErrorMessage);
     }
+
+    var productDomain = await _repository.GetById(productId)
+      ?? throw new NotFoundException(ProductServiceErrors.NotFound);
+    var userId = AuthenticationHelper.GetUserClaimId(userClaim);
+    Console.WriteLine(userId);
+
+    if (productDomain.UserId != userId) {
+      throw new UnauthorizedException();
+    }
+
     productDomain.Name = product.Name;
     productDomain.Discount = product.Discount;
     productDomain.Price = product.Price;

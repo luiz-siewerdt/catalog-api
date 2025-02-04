@@ -5,4 +5,5 @@ public class CategoryDomain : IBaseDomain {
   public string Name { get; set; } = null!;
 
   public ICollection<ProductDomain> Products { get; set; } = [];
+  
 }

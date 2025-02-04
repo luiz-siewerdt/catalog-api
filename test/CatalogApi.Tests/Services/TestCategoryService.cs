@@ -8,8 +8,9 @@ using CatalogApi.Tests.MockData;
 
 namespace CatalogApi.Tests.Services;
 
+// PERF: separate test methods by class
+
 public class TestCategoryService {
-  [Fact]
   public async Task CategoryService_GetCategories_ShouldReturnCategoryResponseList() {
     var expectedResponseData = CategoriesMockData.GetCategories();
     var categoryRepository = new Mock<ICategoryRepository>();
@@ -67,11 +68,11 @@ public class TestCategoryService {
 
     categoryRepository.Verify(repo => repo.Add(It.Is<CategoryDomain>(
       category => category.Name == createCategoryDto.Name
-    )), Times.Once);
+    )), Times.Once());
     categoryRepository.Verify(repo => repo.NameAlreadyInUse(
         It.Is<string>(s => s.Equals(createCategoryDto.Name)),
         It.Is<long>(static id => id == 0)),
-      Times.Once);
+      Times.Once());
   }
 
   [Fact]
@@ -91,7 +92,7 @@ public class TestCategoryService {
     categoryRepository.Verify(repo => repo.NameAlreadyInUse(
         It.Is<string>(s => s == createCategoryDto.Name),
         It.Is<long>(static id => id == 0)),
-      Times.Once);
+      Times.Once());
   }
 
   [Fact]
@@ -114,7 +115,7 @@ public class TestCategoryService {
     categoryRepository.Verify(repo => repo.NameAlreadyInUse(
         It.Is<string>(s => s.Equals(createCategoryDto.Name)),
         It.Is<long>(static id => id == 0)),
-      Times.Once);
+      Times.Once());
   }
 
   [Fact]
@@ -139,13 +140,46 @@ public class TestCategoryService {
     categoryRepository.Verify(repo => repo.Update(It.Is<CategoryDomain>(
       category => category.Name == updateCategory.Name
         && category.Id == categoryId
-    )), Times.Once);
+    )), Times.Once());
     categoryRepository.Verify(repo => repo.NameAlreadyInUse(
         It.Is<string>(s => s.Equals(updateCategory.Name)),
         It.Is<long>(id => id == categoryId)),
-      Times.Once);
+      Times.Once());
+  }
+
+  [Fact]
+  public async Task CategoryService_UpdateCategory_ShouldThrowBadRequestException() {
+    var expectedException = new BadRequestException(CategoryServiceErrors.InvalidName);
+    var updateCategory = new UpdateCategoryDto("");
+    long categoryId = 5;
+
+    var categoryRepository = new Mock<ICategoryRepository>();
+    /*categoryRepository.Setup(static _ => _.GetById(It.IsAny<long>())).ReturnsAsync(new CategoryDomain { Id = categoryid, Name =  })*/
+    var sut = new CategoryService(categoryRepository.Object);
+    var actualException = await Assert.ThrowsAsync<BadRequestException>(async () => await sut.UpdateCategory(categoryId, updateCategory));
+
+    Assert.Equal(expectedException.StatusMessage, actualException.StatusMessage);
+
+    categoryRepository.Verify(static _ => _.GetById(It.IsAny<long>()), Times.Never());
+    categoryRepository.Verify(static _ => _.Update(It.IsAny<CategoryDomain>()), Times.Never());
+  }
+
+  [Fact]
+  public async Task CategoryService_UpdateCategory_ShouldThrowNotFoundException() {
+    var expectedException = new NotFoundException(CategoryServiceErrors.NotFound);
+    var updateCategory = new UpdateCategoryDto("name");
+    long categoryId = 5;
+
+    var categoryRepository = new Mock<ICategoryRepository>();
+    categoryRepository.Setup(static _ => _.GetById(It.IsAny<long>())).ReturnsAsync((CategoryDomain?)null);
+    var sut = new CategoryService(categoryRepository.Object);
+    var actualException = await Assert.ThrowsAsync<NotFoundException>(async () => await sut.UpdateCategory(categoryId, updateCategory));
+
+    Assert.Equal(expectedException.StatusMessage, actualException.StatusMessage);
+
+    categoryRepository.Verify(_ => _.GetById(It.Is<long>(id => id == categoryId)), Times.Once());
+    categoryRepository.Verify(static _ => _.Update(It.IsAny<CategoryDomain>()), Times.Never());
   }
 
   //  TODO: Add UpdateCategory and DeleteCategory tests
-
 }

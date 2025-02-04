@@ -12,7 +12,7 @@ namespace CatalogApi.Tests.Controllers;
 public class TestProductsController {
   [Fact]
   public async Task ProductsController_GetProducts_ShouldReturn200Status() {
-    var expectedResponseData = ProductsMockData.GetProducts();
+    var expectedResponseData = ProductsMockData.GetProductsWithUser();
     var productService = new Mock<IProductService>();
     productService.Setup(static _ => _.GetProducts()).ReturnsAsync(expectedResponseData);
 
@@ -20,10 +20,10 @@ public class TestProductsController {
     var result = await sut.GetProducts();
 
     var okResult = Assert.IsType<OkObjectResult>(result.Result);
-    var actualResponseData = Assert.IsType<List<ProductResponseWithUser>>(okResult.Value);
+    var actualResponseData = Assert.IsAssignableFrom<IEnumerable<ProductResponseWithUser>>(okResult.Value);
 
     Assert.Equal(200, okResult.StatusCode);
-    Assert.Equal(expectedResponseData.Count, actualResponseData.Count);
+    Assert.Equal(expectedResponseData.Count(), actualResponseData.Count());
   }
 
   [Fact]
@@ -63,5 +63,69 @@ public class TestProductsController {
     if (message is not null) {
       Assert.Equal(message, ((dynamic)actualException).StatusMessage);
     }
+  }
+
+  [Fact]
+  public async Task ProductsController_UpdateProduct_ShouldReturn200Status() {
+    var expectedResponseData = new ProductResponse(1, "product", 10, 0, 1);
+    var productService = new Mock<IProductService>();
+    productService.Setup(static _ => _.UpdateProduct(It.IsAny<long>(), It.IsAny<UpdateProductDto>(), It.IsAny<ClaimsPrincipal>()))
+      .ReturnsAsync(expectedResponseData);
+
+    var sut = new ProductsController(productService.Object);
+    var result = await sut.UpdateProduct(1, It.IsAny<UpdateProductDto>());
+
+    var okObject = Assert.IsType<OkObjectResult>(result.Result);
+    var actualResponseData = Assert.IsType<ProductResponse>(okObject.Value);
+
+    Assert.Equal(expectedResponseData.Name, actualResponseData.Name);
+    Assert.Equal(expectedResponseData.Price, actualResponseData.Price);
+    Assert.Equal(expectedResponseData.Discount, actualResponseData.Discount);
+    Assert.Equal(expectedResponseData.UserId, actualResponseData.UserId);
+  }
+
+  [Theory]
+  [InlineData(400, typeof(BadRequestException), ProductServiceErrors.InvalidName)]
+  [InlineData(401, typeof(UnauthorizedException), "")]
+  [InlineData(404, typeof(NotFoundException), ProductServiceErrors.NotFound)]
+  public async Task ProductsController_UpdateProduct_ShouldReturnBadStatus(int statusCode, Type exceptionType, string message) {
+    var expectedException = (ServiceException)Activator.CreateInstance(exceptionType, message)!;
+    var productService = new Mock<IProductService>();
+    productService.Setup(static _ => _.UpdateProduct(It.IsAny<long>(), It.IsAny<UpdateProductDto>(), It.IsAny<ClaimsPrincipal>()))
+      .ThrowsAsync(expectedException);
+
+    var sut = new ProductsController(productService.Object);
+    var actualException = await Assert.ThrowsAsync(exceptionType,
+        async () => await sut.UpdateProduct(It.IsAny<long>(), It.IsAny<UpdateProductDto>()));
+
+    Assert.Equal(statusCode, ((dynamic)actualException).StatusCode);
+    if (message != "") {
+      Assert.Equal(message, ((dynamic)actualException).StatusMessage);
+    }
+  }
+
+  [Fact]
+  public async Task ProductsController_DeleteProduct_ShouldReturn204Status() {
+    var productService = new Mock<IProductService>();
+    var sut = new ProductsController(productService.Object);
+
+    var result = await sut.DeleteProduct(It.IsAny<long>());
+
+    var noContentResult = Assert.IsType<NoContentResult>(result);
+
+    Assert.Equal(204, noContentResult.StatusCode);
+  }
+
+  [Fact]
+  public async Task ProductsController_DeleteProduct_ShouldReturn404Status() {
+    var expectedException = new NotFoundException(ProductServiceErrors.NotFound);
+    var productService = new Mock<IProductService>();
+    productService.Setup(static _ => _.DeleteProduct(It.IsAny<long>(), It.IsAny<ClaimsPrincipal>()))
+      .ThrowsAsync(expectedException);
+
+    var sut = new ProductsController(productService.Object);
+
+    var exception = await Assert.ThrowsAsync<NotFoundException>(async () => await sut.DeleteProduct(It.IsAny<long>()));
+    Assert.Equal(ProductServiceErrors.NotFound, exception.StatusMessage);
   }
 }
